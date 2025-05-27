@@ -1,0 +1,100 @@
+To **completely purge Wazuh** (including the dashboard, indexer, and agent) from a Debian/Ubuntu system, follow these steps carefully. This ensures all packages, configuration files, certificates, and user data are removed.
+
+---
+
+## 🔥 Step-by-step Wazuh Full Removal
+
+### 1. **Stop all Wazuh services**
+
+Run the following to stop Wazuh components:
+
+```bash
+sudo systemctl stop wazuh-manager
+sudo systemctl stop wazuh-agent
+sudo systemctl stop wazuh-dashboard
+sudo systemctl stop wazuh-indexer
+```
+
+---
+
+### 2. **Remove Wazuh packages**
+
+Purge all installed packages:
+
+```bash
+sudo apt purge --autoremove wazuh-manager wazuh-agent wazuh-dashboard wazuh-indexer -y
+```
+
+You can list installed Wazuh-related packages first with:
+
+```bash
+dpkg -l | grep wazuh
+```
+
+If any extra packages show up (e.g. `opensearch`, `filebeat` if used), purge them too.
+
+---
+
+### 3. **Delete remaining configuration files and directories**
+
+```bash
+sudo rm -rf /etc/wazuh*
+sudo rm -rf /var/ossec
+sudo rm -rf /var/lib/wazuh*
+sudo rm -rf /usr/share/wazuh*
+sudo rm -rf /opt/wazuh*
+sudo rm -rf /etc/systemd/system/wazuh*
+sudo rm -rf /etc/wazuh-dashboard*
+sudo rm -rf /usr/share/kibana*
+sudo rm -rf /etc/filebeat
+sudo rm -rf /var/lib/filebeat
+```
+
+Check with `ls` first if you want to confirm contents before deletion.
+
+---
+
+### 4. **Remove OpenSearch or Elasticsearch if installed**
+
+If you installed Wazuh Indexer (based on OpenSearch), remove it:
+
+```bash
+sudo apt purge --autoremove opensearch -y
+sudo rm -rf /etc/opensearch
+sudo rm -rf /usr/share/opensearch
+sudo rm -rf /var/lib/opensearch
+```
+
+---
+
+### 5. **Reload systemd and clean up services**
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl reset-failed
+```
+
+---
+
+### 6. **Remove any Wazuh user/group (optional)**
+
+```bash
+sudo deluser --remove-home wazuh
+sudo delgroup wazuh
+```
+
+---
+
+## ✅ Done
+
+Your system should now be fully clean of Wazuh. You can double-check with:
+
+```bash
+sudo find / -iname '*wazuh*' 2>/dev/null
+```
+
+If anything relevant remains, remove it manually.
+
+---
+
+Let me know if you used Docker or a specific deployment method — the removal steps are slightly different in that case.
