@@ -1,0 +1,77 @@
+$Domain = (Get-ADDomain).DNSRoot
+$NetBIOS = (Get-ADDomain).NetBIOSName
+
+New-ADUser -Name "iishttp" -SamAccountName "iishttp" -UserPrincipalName "iishttp@$Domain" -AccountPassword (ConvertTo-SecureString "Password1" -AsPlainText -Force) -Enabled $true
+Set-ADUser -Identity "iishttp" -Add @{ServicePrincipalName="HTTP/iisweb.$Domain"}
+
+New-ADUser -Name "sqlsvc" -SamAccountName "sqlsvc" -UserPrincipalName "sqlsvc@$Domain" -AccountPassword (ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force) -Enabled $true
+Set-ADUser -Identity "sqlsvc" -Add @{ServicePrincipalName="MSSQLSvc/sqlserver.$Domain"}
+
+New-ADUser -Name "jean.gabin" -SamAccountName "jean.gabin" -UserPrincipalName "jean.gabin@$Domain" -AccountPassword (ConvertTo-SecureString "Password1" -AsPlainText -Force) -Enabled $true
+Set-ADUser -Identity "jean.gabin" -Replace @{userAccountControl=((Get-ADUser -Identity "jean.gabin" -Properties userAccountControl).userAccountControl -bor 4194304)}
+
+New-ADUser -Name "Gino Pepone" -SamAccountName "gino.pepone" -UserPrincipalName "gino.pepone@$Domain" -AccountPassword (ConvertTo-SecureString "G1n0P3p0n3!" -AsPlainText -Force) -Enabled $true
+
+New-ADUser -Name "kelsy.galina" -SamAccountName "kelsy.galina" -UserPrincipalName "kelsy.galina@$Domain" -AccountPassword (ConvertTo-SecureString "Password1" -AsPlainText -Force) -Enabled $true
+
+Add-ADGroupMember -Identity "Administrateurs" -Members "gino.pepone"
+
+$sqlsvc = Get-ADUser -Identity "sqlsvc"
+$targetUser = Get-ADUser -Identity "gino.pepone"
+$kelsy = Get-ADUser -Identity "kelsy.galina" 
+$jean = Get-ADUser -Identity "jean.gabin"
+
+Add-Type -AssemblyName System.DirectoryServices
+Add-Type -AssemblyName System.Security
+
+$IdentityReferenceSqlSvc = New-Object System.Security.Principal.NTAccount("$NetBIOS\$($sqlsvc.SamAccountName)")
+
+$targetUserDistinguishedName = $targetUser.DistinguishedName
+$targetUserDirectoryEntry = [ADSI]"LDAP://$targetUserDistinguishedName"
+
+$acl = $targetUserDirectoryEntry.ObjectSecurity
+
+$aceSqlSvc = New-Object System.DirectoryServices.ActiveDirectoryAccessRule(
+    $IdentityReferenceSqlSvc,
+    "GenericAll",
+    "Allow"
+)
+
+$acl.AddAccessRule($aceSqlSvc)
+$targetUserDirectoryEntry.ObjectSecurity = $acl
+$targetUserDirectoryEntry.CommitChanges()
+
+$IdentityReferenceJean = New-Object System.Security.Principal.NTAccount("$NetBIOS\$($jean.SamAccountName)") 
+$kelsyDistinguishedName = $kelsy.DistinguishedName
+$kelsyDirectoryEntry = [ADSI]"LDAP://$kelsyDistinguishedName"
+
+$aclKelsy = $kelsyDirectoryEntry.ObjectSecurity
+$aceJean = New-Object System.DirectoryServices.ActiveDirectoryAccessRule(
+    $IdentityReferenceJean,
+    "GenericWrite",
+    "Allow"
+)
+
+$aclKelsy.AddAccessRule($aceJean)
+$kelsyDirectoryEntry.ObjectSecurity = $aclKelsy
+$kelsyDirectoryEntry.CommitChanges()
+
+$ADObject = [ADSI]("LDAP://" + (Get-ADDomain).DistinguishedName)
+$sid = (Get-ADUser -Identity "kelsy.galina").SID
+
+$guid1 = New-Object Guid 1131f6aa-9c07-11d1-f79f-00c04fc2dcd2
+$guid2 = New-Object Guid 1131f6ad-9c07-11d1-f79f-00c04fc2dcd2
+$guid3 = New-Object Guid 89e95b76-444d-4c62-991a-0facbeda640c
+
+$ACE1 = New-Object DirectoryServices.ActiveDirectoryAccessRule($sid,'ExtendedRight','Allow',$guid1)
+$ACE2 = New-Object DirectoryServices.ActiveDirectoryAccessRule($sid,'ExtendedRight','Allow',$guid2)
+$ACE3 = New-Object DirectoryServices.ActiveDirectoryAccessRule($sid,'ExtendedRight','Allow',$guid3)
+
+$ADObject.psbase.ObjectSecurity.AddAccessRule($ACE1)
+$ADObject.psbase.ObjectSecurity.AddAccessRule($ACE2)
+$ADObject.psbase.ObjectSecurity.AddAccessRule($ACE3)
+$ADObject.psbase.CommitChanges()
+
+Set-ADUser -Identity "kelsy.galina" -Description "Replication Account"
+
+Write-Host "Environnement AD vulnérable configuré avec succès." -ForegroundColor Green
