@@ -1,0 +1,17 @@
+🔐 Modern method (if apt-key is unavailable/deprecated)
+a. Fetch and add the key manually:
+bash
+Copy
+Edit
+curl -fsSL https://archive.kali.org/archive-key.asc | sudo gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg
+b. Update your sources.list to reference the keyring:
+bash
+Copy
+Edit
+deb [signed-by=/usr/share/keyrings/kali-archive-keyring.gpg] http://http.kali.org/kali kali-rolling main non-free non-free-firmware contrib
+Edit with:
+
+bash
+Copy
+Edit
+sudo nano /etc/apt/sources.list
