@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lambda by BlackMesa</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      width: 100%;
+      padding: 40px 20px;
+      background-color: #1e1e1e;
+      text-align: center;
+    }
+    header img {
+      height: 80px;
+    }
+    h1 {
+      font-size: 3em;
+      margin: 0.2em 0 0.1em;
+    }
+    p.subtitle {
+      font-size: 1.3em;
+      color: #aaa;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .hero {
+      margin-top: 60px;
+      max-width: 1000px;
+      padding: 20px;
+      text-align: center;
+    }
+    .hero h2 {
+      font-size: 2em;
+      margin-bottom: 0.5em;
+    }
+    .hero p {
+      font-size: 1.1em;
+      color: #ccc;
+    }
+    .cta {
+      margin-top: 40px;
+    }
+    .cta button {
+      background-color: #f36f21;
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      font-size: 1em;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .cta button:hover {
+      background-color: #d55f1b;
+    }
+    footer {
+      margin-top: 60px;
+      font-size: 0.9em;
+      color: #666;
+      text-align: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="lambda-logo.png" alt="Lambda logo">
+    <h1>Lambda</h1>
+    <p class="subtitle">Le moteur digital de nouvelle génération par BlackMesa</p>
+  </header>
+
+  <section class="hero">
+    <h2>Une seule plateforme, un potentiel infini.</h2>
+    <p>
+      Lambda est la solution cloud intelligente de BlackMesa. Conçue pour les équipes tech, SRE et R&D, elle combine performance, fiabilité et scalabilité dans une interface minimaliste, moderne et rapide.
+    </p>
+    <div class="cta">
+      <button>Demander une démo</button>
+    </div>
+  </section>
+
+  <footer>
+    &copy; 2025 BlackMesa. Tous droits réservés.
+  </footer>
+</body>
+</html>
